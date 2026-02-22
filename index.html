@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universal AI Chat – Pro</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<style>
+html,body{height:100%}
+pre{overflow-x:auto}
+textarea{max-height:180px}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+.dark ::-webkit-scrollbar-thumb{background:#475569}
+</style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 h-full">
+
+<div id="loading" class="fixed inset-0 flex items-center justify-center text-xl font-semibold bg-white dark:bg-gray-900 z-50">
+Loading App...
+</div>
+
+<div id="app" class="hidden min-h-screen flex">
+
+<!-- SIDEBAR -->
+<aside id="sidebar" class="fixed md:relative z-40 w-72 bg-white dark:bg-gray-800 border-r dark:border-gray-700 min-h-screen transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
+
+<div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+<h2 class="font-semibold">Chats</h2>
+<button id="closeSidebar" class="md:hidden text-xl">✕</button>
+</div>
+
+<button id="newChatBtn" class="m-3 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
++ New Chat
+</button>
+
+<div id="chatList" class="flex-1 overflow-y-auto px-2 pb-4 space-y-1"></div>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 flex flex-col min-h-screen">
+
+<!-- TOP -->
+<div class="p-3 border-b dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<button id="openSidebar" class="md:hidden text-xl">☰</button>
+<h1 class="font-semibold">Universal AI Pro</h1>
+</div>
+<div class="flex gap-3">
+<button id="darkToggle">🌙</button>
+<button id="settingsBtn">⚙️</button>
+</div>
+</div>
+
+<!-- MESSAGES -->
+<div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+
+<!-- INPUT -->
+<div class="sticky bottom-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 p-3">
+<div class="flex gap-2">
+<textarea id="userInput" rows="1" placeholder="Type your message..."
+class="flex-1 resize-none rounded-lg border p-2 dark:bg-gray-700 dark:text-white"></textarea>
+<button id="sendBtn" class="bg-blue-600 text-white px-4 rounded-lg">Send</button>
+<button id="stopBtn" class="bg-red-500 text-white px-4 rounded-lg hidden">Stop</button>
+</div>
+</div>
+
+</main>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md space-y-3">
+<h2 class="font-semibold text-lg">Settings</h2>
+
+<select id="providerSelect" class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white">
+<option value="openrouter">OpenRouter</option>
+<option value="openai">OpenAI Compatible</option>
+<option value="anthropic">Anthropic Compatible</option>
+</select>
+
+<input id="apiKeyInput" type="password" placeholder="API Key"
+class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"/>
+
+<input id="modelInput" type="text" placeholder="Model"
+class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"/>
+
+<button id="saveSettings" class="bg-blue-600 text-white px-4 py-2 rounded w-full">
+Save
+</button>
+</div>
+</div>
+
+<script>
+(function(){
+
+const state={
+chats:JSON.parse(localStorage.getItem("chats")||"[]"),
+currentChatId:null,
+provider:localStorage.getItem("provider")||"openrouter",
+apiKey:localStorage.getItem("apiKey")||"",
+model:localStorage.getItem("model")||"deepseek/deepseek-r1:free",
+darkMode:localStorage.getItem("darkMode")==="true",
+controller:null
+};
+
+if(state.darkMode)document.documentElement.classList.add("dark");
+
+function saveAll(){
+localStorage.setItem("chats",JSON.stringify(state.chats));
+localStorage.setItem("provider",state.provider);
+localStorage.setItem("apiKey",state.apiKey);
+localStorage.setItem("model",state.model);
+localStorage.setItem("darkMode",state.darkMode);
+}
+
+function createChat(){
+const id=Date.now();
+state.chats.unshift({
+id,
+title:"New Chat",
+messages:[],
+systemPrompt:"You are a helpful AI assistant."
+});
+state.currentChatId=id;
+saveAll();
+renderChats();
+renderMessages();
+}
+
+function deleteChat(id){
+state.chats=state.chats.filter(c=>c.id!==id);
+if(state.currentChatId===id){
+state.currentChatId=state.chats[0]?.id||null;
+}
+saveAll();
+renderChats();
+renderMessages();
+}
+
+function renameChat(chat){
+const name=prompt("Rename chat:",chat.title);
+if(name){
+chat.title=name;
+saveAll();
+renderChats();
+}
+}
+
+function renderChats(){
+const list=document.getElementById("chatList");
+list.innerHTML="";
+state.chats.forEach(chat=>{
+const div=document.createElement("div");
+div.className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex justify-between items-center cursor-pointer";
+div.innerHTML=`<span>${chat.title}</span>
+<div class="flex gap-2">
+<button class="text-xs">✏️</button>
+<button class="text-xs">🗑️</button>
+</div>`;
+div.onclick=()=>{state.currentChatId=chat.id;renderMessages()};
+div.querySelector("button:nth-child(1)").onclick=(e)=>{e.stopPropagation();renameChat(chat)};
+div.querySelector("button:nth-child(2)").onclick=(e)=>{e.stopPropagation();deleteChat(chat.id)};
+list.appendChild(div);
+});
+}
+
+function renderMessages(){
+const container=document.getElementById("chatContainer");
+container.innerHTML="";
+const chat=state.chats.find(c=>c.id===state.currentChatId);
+if(!chat)return;
+
+chat.messages.forEach(msg=>{
+const wrapper=document.createElement("div");
+wrapper.className=msg.role==="user"?"text-right":"text-left";
+wrapper.innerHTML=`
+<div class="inline-block p-3 rounded-lg ${
+msg.role==="user"
+?"bg-blue-600 text-white"
+:"bg-gray-200 dark:bg-gray-700 dark:text-white"
+}">
+${marked.parse(msg.content)}
+</div>`;
+container.appendChild(wrapper);
+});
+container.scrollTop=container.scrollHeight;
+}
+
+function autoResize(){
+const ta=document.getElementById("userInput");
+ta.style.height="auto";
+ta.style.height=ta.scrollHeight+"px";
+}
+
+async function sendMessage(){
+if(state.controller)return;
+
+const input=document.getElementById("userInput");
+const text=input.value.trim();
+if(!text)return;
+
+input.value="";
+autoResize();
+
+const chat=state.chats.find(c=>c.id===state.currentChatId);
+if(!chat)return;
+
+chat.messages.push({role:"user",content:text});
+chat.messages.push({role:"assistant",content:""});
+saveAll();
+renderMessages();
+
+state.controller=new AbortController();
+document.getElementById("stopBtn").classList.remove("hidden");
+
+let endpoint="https://openrouter.ai/api/v1/chat/completions";
+if(state.provider==="openai")endpoint="https://api.openai.com/v1/chat/completions";
+if(state.provider==="anthropic")endpoint="https://api.anthropic.com/v1/messages";
+
+try{
+const res=await fetch(endpoint,{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+state.apiKey
+},
+body:JSON.stringify({
+model:state.model,
+stream:true,
+messages:[
+{role:"system",content:chat.systemPrompt},
+...chat.messages
+]
+}),
+signal:state.controller.signal
+});
+
+const reader=res.body.getReader();
+const decoder=new TextDecoder();
+const aiMsg=chat.messages[chat.messages.length-1];
+
+while(true){
+const {done,value}=await reader.read();
+if(done)break;
+const chunk=decoder.decode(value);
+chunk.split("\n").forEach(line=>{
+if(line.startsWith("data:")){
+const data=line.replace("data:","").trim();
+if(data==="[DONE]")return;
+try{
+const json=JSON.parse(data);
+const token=json.choices?.[0]?.delta?.content;
+if(token){
+aiMsg.content+=token;
+renderMessages();
+}
+}catch{}
+}
+});
+}
+
+}catch(err){
+chat.messages[chat.messages.length-1].content="Error: "+err.message;
+renderMessages();
+}
+
+state.controller=null;
+document.getElementById("stopBtn").classList.add("hidden");
+saveAll();
+}
+
+document.getElementById("sendBtn").onclick=sendMessage;
+document.getElementById("stopBtn").onclick=()=>{
+if(state.controller)state.controller.abort();
+state.controller=null;
+document.getElementById("stopBtn").classList.add("hidden");
+};
+
+document.getElementById("userInput").addEventListener("input",autoResize);
+document.getElementById("userInput").addEventListener("keydown",e=>{
+if(e.key==="Enter"&&!e.shiftKey){
+e.preventDefault();
+sendMessage();
+}
+});
+
+document.getElementById("newChatBtn").onclick=createChat;
+
+document.getElementById("darkToggle").onclick=()=>{
+state.darkMode=!state.darkMode;
+document.documentElement.classList.toggle("dark");
+saveAll();
+};
+
+document.getElementById("settingsBtn").onclick=()=>{
+document.getElementById("settingsModal").classList.remove("hidden");
+};
+
+document.getElementById("saveSettings").onclick=()=>{
+state.provider=document.getElementById("providerSelect").value;
+state.apiKey=document.getElementById("apiKeyInput").value.trim();
+state.model=document.getElementById("modelInput").value.trim();
+saveAll();
+document.getElementById("settingsModal").classList.add("hidden");
+};
+
+document.getElementById("openSidebar").onclick=()=>{
+document.getElementById("sidebar").classList.remove("-translate-x-full");
+};
+document.getElementById("closeSidebar").onclick=()=>{
+document.getElementById("sidebar").classList.add("-translate-x-full");
+};
+
+if(state.chats.length===0)createChat();
+else{
+state.currentChatId=state.chats[0].id;
+renderChats();
+renderMessages();
+}
+
+document.getElementById("providerSelect").value=state.provider;
+document.getElementById("apiKeyInput").value=state.apiKey;
+document.getElementById("modelInput").value=state.model;
+
+document.getElementById("loading").style.display="none";
+document.getElementById("app").classList.remove("hidden");
+
+})();
+</script>
+
+</body>
+</html>
