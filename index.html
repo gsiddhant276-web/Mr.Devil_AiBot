@@ -1,337 +1,246 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Universal AI Chat – Pro</title>
+    <meta charset="UTF-8">
+    <title>GHOST LAUNCHER | v1.0.0</title>
+    <style>
+        :root {
+            --ghost-purple: #9d4edd;
+            --ghost-glow: #c8b6ff;
+            --dark-bg: #0d0d12;
+            --accent-green: #38ef7d;
+            --glass: rgba(20, 20, 30, 0.85);
+        }
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        body, html {
+            margin: 0; padding: 0;
+            height: 100%; width: 100%;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--dark-bg);
+            color: white; overflow: hidden;
+        }
 
-<style>
-html,body{height:100%}
-pre{overflow-x:auto}
-textarea{max-height:180px}
-::-webkit-scrollbar{width:6px}
-::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
-.dark ::-webkit-scrollbar-thumb{background:#475569}
-</style>
+        /* --- 1. SEQUENTIAL LOADING SCREEN --- */
+        #loading-screen {
+            position: fixed; inset: 0;
+            background: radial-gradient(circle, #1a0b2e 0%, #050505 100%);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 999; transition: 0.8s ease-in-out;
+        }
+
+        .pulse-logo {
+            width: 180px;
+            filter: drop-shadow(0 0 15px var(--ghost-purple));
+            animation: ghostPulse 1.5s infinite;
+        }
+
+        @keyframes ghostPulse {
+            0% { transform: scale(1); filter: drop-shadow(0 0 5px var(--ghost-purple)); }
+            50% { transform: scale(1.08); filter: drop-shadow(0 0 25px var(--ghost-glow)); }
+            100% { transform: scale(1); filter: drop-shadow(0 0 5px var(--ghost-purple)); }
+        }
+
+        /* --- 2. LOGIN SCREEN --- */
+        #login-screen {
+            display: none; height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://i.imgur.com/3YpQ6eY.jpg');
+            background-size: cover; justify-content: center; align-items: center;
+        }
+
+        .login-card {
+            background: var(--glass);
+            padding: 40px; border-radius: 20px;
+            border: 1px solid var(--ghost-purple);
+            text-align: center; backdrop-filter: blur(10px);
+            box-shadow: 0 0 40px rgba(157, 78, 221, 0.2);
+        }
+
+        .login-card input {
+            width: 280px; padding: 12px; margin: 15px 0;
+            background: #000; border: 1px solid #444;
+            color: white; border-radius: 5px; outline: none;
+        }
+
+        .login-card input:focus { border-color: var(--ghost-purple); }
+
+        .btn {
+            width: 100%; padding: 12px; margin: 5px 0;
+            border-radius: 5px; border: none; cursor: pointer;
+            font-weight: bold; transition: 0.3s;
+        }
+
+        .btn-local { background: var(--ghost-purple); color: white; }
+        .btn-ely { background: #2d6cdf; color: white; }
+
+        /* --- 3. MAIN DASHBOARD --- */
+        #dashboard {
+            display: none; height: 100%;
+            background: url('https://i.imgur.com/3YpQ6eY.jpg') no-repeat center;
+            background-size: cover; flex-direction: column;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: absolute; left: 15px; top: 100px;
+            width: 60px; background: rgba(0,0,0,0.6);
+            border: 1px solid var(--ghost-purple);
+            border-radius: 15px; display: flex; flex-direction: column;
+            align-items: center; padding: 15px 0; gap: 20px;
+        }
+
+        .side-icon { width: 30px; opacity: 0.6; cursor: pointer; transition: 0.3s; }
+        .side-icon:hover { opacity: 1; transform: scale(1.1); }
+
+        /* Top Nav */
+        header {
+            display: flex; justify-content: space-between;
+            padding: 15px 40px; background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .user-pill {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,0.1);
+            padding: 5px 15px; border-radius: 20px;
+        }
+
+        /* Play Section */
+        .play-area {
+            flex-grow: 1; display: flex;
+            justify-content: center; align-items: center;
+        }
+
+        .center-ui {
+            background: rgba(0,0,0,0.6);
+            padding: 40px 60px; border-radius: 25px;
+            border: 1px solid var(--ghost-purple);
+            text-align: center; backdrop-filter: blur(8px);
+        }
+
+        .version-dropdown {
+            background: #111; color: white;
+            border: 1px solid var(--ghost-purple);
+            padding: 8px 20px; border-radius: 5px;
+            margin-bottom: 20px; width: 100%;
+        }
+
+        .play-btn {
+            background: linear-gradient(to right, #11998e, #38ef7d);
+            color: white; font-size: 2.5rem; font-weight: 900;
+            padding: 15px 100px; border-radius: 12px;
+            border: none; cursor: pointer;
+            box-shadow: 0 0 25px rgba(56, 239, 125, 0.4);
+            transition: 0.2s;
+        }
+
+        .play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+        /* Bottom Update Bar */
+        .status-bar {
+            background: rgba(0,0,0,0.8);
+            padding: 10px 40px; border-top: 1px solid #333;
+            display: flex; justify-content: space-between; font-size: 0.85rem;
+        }
+    </style>
 </head>
+<body>
 
-<body class="bg-gray-100 dark:bg-gray-900 h-full">
+    <div id="loading-screen">
+        <img src="63650.png" class="pulse-logo" alt="Ghost Logo">
+        <h1 style="letter-spacing: 10px; margin-top: 20px;">GHOST</h1>
+        <p style="color: var(--ghost-purple);">Initializing Modules...</p>
+    </div>
 
-<div id="loading" class="fixed inset-0 flex items-center justify-center text-xl font-semibold bg-white dark:bg-gray-900 z-50">
-Loading App...
-</div>
+    <div id="login-screen">
+        <div class="login-card">
+            <img src="63650.png" width="70" alt="Ghost Logo">
+            <h2>GHOST LAUNCHER</h2>
+            <input type="text" id="userInput" placeholder="Local Username" autocomplete="off">
+            <button class="btn btn-local" onclick="handleLogin('Local')">Login as Local Account</button>
+            <button class="btn btn-ely" onclick="handleLogin('Ely.by')">Ely.by Account</button>
+        </div>
+    </div>
 
-<div id="app" class="hidden min-h-screen flex">
+    <div id="dashboard">
+        <header>
+            <div style="font-weight: bold; font-size: 1.2rem;">GHOST_LAUNCHER</div>
+            <div style="display:flex; gap: 20px;">
+                <span>Home</span> <span>Servers</span> <span>Settings</span>
+            </div>
+            <div class="user-pill">
+                <span id="playerName">Devil</span>
+                <img src="63650.png" width="25" style="border-radius: 50%;">
+            </div>
+        </header>
 
-<!-- SIDEBAR -->
-<aside id="sidebar" class="fixed md:relative z-40 w-72 bg-white dark:bg-gray-800 border-r dark:border-gray-700 min-h-screen transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
+        <div class="sidebar">
+            <div class="side-icon">📂</div>
+            <div class="side-icon">🛠️</div>
+            <div class="side-icon">🎨</div>
+            <div class="side-icon">❓</div>
+        </div>
 
-<div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-<h2 class="font-semibold">Chats</h2>
-<button id="closeSidebar" class="md:hidden text-xl">✕</button>
-</div>
+        <div class="play-area">
+            <div class="center-ui">
+                <div style="margin-bottom: 10px; opacity: 0.7;">Minecraft Version</div>
+                <select class="version-dropdown">
+                    <option>1.20.1 (Indian Selective)</option>
+                    <option>1.19.4</option>
+                    <option>1.16.5 (Optifine)</option>
+                    <option>1.8.9 (PvP Pack)</option>
+                </select>
+                <br>
+                <button class="play-btn" onclick="startMinecraft()">PLAY</button>
+            </div>
+        </div>
 
-<button id="newChatBtn" class="m-3 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-+ New Chat
-</button>
+        <div class="status-bar">
+            <div>Update Logs: <span style="color: var(--ghost-purple);">v1.0.0-Stable</span></div>
+            <div>Status: <span style="color: var(--accent-green);">Ready to Play</span></div>
+        </div>
+    </div>
 
-<div id="chatList" class="flex-1 overflow-y-auto px-2 pb-4 space-y-1"></div>
-</aside>
+    <script>
+        // Start Loading Logic
+        window.onload = () => {
+            setTimeout(() => {
+                const loader = document.getElementById('loading-screen');
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    document.getElementById('login-screen').style.display = 'flex';
+                }, 800);
+            }, 3000); // 3-second pulse animation
+        };
 
-<!-- MAIN -->
-<main class="flex-1 flex flex-col min-h-screen">
+        // Login Logic
+        function handleLogin(type) {
+            const user = document.getElementById('userInput').value;
+            if (type === 'Local' && user.trim() === "") {
+                alert("Please enter a username for your local account.");
+                return;
+            }
+            
+            document.getElementById('playerName').innerText = type === 'Local' ? user : "Ely_User";
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'flex';
+        }
 
-<!-- TOP -->
-<div class="p-3 border-b dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
-<div class="flex items-center gap-3">
-<button id="openSidebar" class="md:hidden text-xl">☰</button>
-<h1 class="font-semibold">Universal AI Pro</h1>
-</div>
-<div class="flex gap-3">
-<button id="darkToggle">🌙</button>
-<button id="settingsBtn">⚙️</button>
-</div>
-</div>
+        // Play Button Logic
+        function startMinecraft() {
+            const btn = document.querySelector('.play-btn');
+            btn.innerHTML = "LAUNCHING...";
+            btn.style.opacity = "0.6";
+            btn.disabled = true;
 
-<!-- MESSAGES -->
-<div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
-
-<!-- INPUT -->
-<div class="sticky bottom-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 p-3">
-<div class="flex gap-2">
-<textarea id="userInput" rows="1" placeholder="Type your message..."
-class="flex-1 resize-none rounded-lg border p-2 dark:bg-gray-700 dark:text-white"></textarea>
-<button id="sendBtn" class="bg-blue-600 text-white px-4 rounded-lg">Send</button>
-<button id="stopBtn" class="bg-red-500 text-white px-4 rounded-lg hidden">Stop</button>
-</div>
-</div>
-
-</main>
-</div>
-
-<!-- SETTINGS MODAL -->
-<div id="settingsModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-<div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md space-y-3">
-<h2 class="font-semibold text-lg">Settings</h2>
-
-<select id="providerSelect" class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white">
-<option value="openrouter">OpenRouter</option>
-<option value="openai">OpenAI Compatible</option>
-<option value="anthropic">Anthropic Compatible</option>
-</select>
-
-<input id="apiKeyInput" type="password" placeholder="API Key"
-class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"/>
-
-<input id="modelInput" type="text" placeholder="Model"
-class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"/>
-
-<button id="saveSettings" class="bg-blue-600 text-white px-4 py-2 rounded w-full">
-Save
-</button>
-</div>
-</div>
-
-<script>
-(function(){
-
-const state={
-chats:JSON.parse(localStorage.getItem("chats")||"[]"),
-currentChatId:null,
-provider:localStorage.getItem("provider")||"openrouter",
-apiKey:localStorage.getItem("apiKey")||"",
-model:localStorage.getItem("model")||"deepseek/deepseek-r1:free",
-darkMode:localStorage.getItem("darkMode")==="true",
-controller:null
-};
-
-if(state.darkMode)document.documentElement.classList.add("dark");
-
-function saveAll(){
-localStorage.setItem("chats",JSON.stringify(state.chats));
-localStorage.setItem("provider",state.provider);
-localStorage.setItem("apiKey",state.apiKey);
-localStorage.setItem("model",state.model);
-localStorage.setItem("darkMode",state.darkMode);
-}
-
-function createChat(){
-const id=Date.now();
-state.chats.unshift({
-id,
-title:"New Chat",
-messages:[],
-systemPrompt:"You are a helpful AI assistant."
-});
-state.currentChatId=id;
-saveAll();
-renderChats();
-renderMessages();
-}
-
-function deleteChat(id){
-state.chats=state.chats.filter(c=>c.id!==id);
-if(state.currentChatId===id){
-state.currentChatId=state.chats[0]?.id||null;
-}
-saveAll();
-renderChats();
-renderMessages();
-}
-
-function renameChat(chat){
-const name=prompt("Rename chat:",chat.title);
-if(name){
-chat.title=name;
-saveAll();
-renderChats();
-}
-}
-
-function renderChats(){
-const list=document.getElementById("chatList");
-list.innerHTML="";
-state.chats.forEach(chat=>{
-const div=document.createElement("div");
-div.className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex justify-between items-center cursor-pointer";
-div.innerHTML=`<span>${chat.title}</span>
-<div class="flex gap-2">
-<button class="text-xs">✏️</button>
-<button class="text-xs">🗑️</button>
-</div>`;
-div.onclick=()=>{state.currentChatId=chat.id;renderMessages()};
-div.querySelector("button:nth-child(1)").onclick=(e)=>{e.stopPropagation();renameChat(chat)};
-div.querySelector("button:nth-child(2)").onclick=(e)=>{e.stopPropagation();deleteChat(chat.id)};
-list.appendChild(div);
-});
-}
-
-function renderMessages(){
-const container=document.getElementById("chatContainer");
-container.innerHTML="";
-const chat=state.chats.find(c=>c.id===state.currentChatId);
-if(!chat)return;
-
-chat.messages.forEach(msg=>{
-const wrapper=document.createElement("div");
-wrapper.className=msg.role==="user"?"text-right":"text-left";
-wrapper.innerHTML=`
-<div class="inline-block p-3 rounded-lg ${
-msg.role==="user"
-?"bg-blue-600 text-white"
-:"bg-gray-200 dark:bg-gray-700 dark:text-white"
-}">
-${marked.parse(msg.content)}
-</div>`;
-container.appendChild(wrapper);
-});
-container.scrollTop=container.scrollHeight;
-}
-
-function autoResize(){
-const ta=document.getElementById("userInput");
-ta.style.height="auto";
-ta.style.height=ta.scrollHeight+"px";
-}
-
-async function sendMessage(){
-if(state.controller)return;
-
-const input=document.getElementById("userInput");
-const text=input.value.trim();
-if(!text)return;
-
-input.value="";
-autoResize();
-
-const chat=state.chats.find(c=>c.id===state.currentChatId);
-if(!chat)return;
-
-chat.messages.push({role:"user",content:text});
-chat.messages.push({role:"assistant",content:""});
-saveAll();
-renderMessages();
-
-state.controller=new AbortController();
-document.getElementById("stopBtn").classList.remove("hidden");
-
-let endpoint="https://openrouter.ai/api/v1/chat/completions";
-if(state.provider==="openai")endpoint="https://api.openai.com/v1/chat/completions";
-if(state.provider==="anthropic")endpoint="https://api.anthropic.com/v1/messages";
-
-try{
-const res=await fetch(endpoint,{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"Authorization":"Bearer "+state.apiKey
-},
-body:JSON.stringify({
-model:state.model,
-stream:true,
-messages:[
-{role:"system",content:chat.systemPrompt},
-...chat.messages
-]
-}),
-signal:state.controller.signal
-});
-
-const reader=res.body.getReader();
-const decoder=new TextDecoder();
-const aiMsg=chat.messages[chat.messages.length-1];
-
-while(true){
-const {done,value}=await reader.read();
-if(done)break;
-const chunk=decoder.decode(value);
-chunk.split("\n").forEach(line=>{
-if(line.startsWith("data:")){
-const data=line.replace("data:","").trim();
-if(data==="[DONE]")return;
-try{
-const json=JSON.parse(data);
-const token=json.choices?.[0]?.delta?.content;
-if(token){
-aiMsg.content+=token;
-renderMessages();
-}
-}catch{}
-}
-});
-}
-
-}catch(err){
-chat.messages[chat.messages.length-1].content="Error: "+err.message;
-renderMessages();
-}
-
-state.controller=null;
-document.getElementById("stopBtn").classList.add("hidden");
-saveAll();
-}
-
-document.getElementById("sendBtn").onclick=sendMessage;
-document.getElementById("stopBtn").onclick=()=>{
-if(state.controller)state.controller.abort();
-state.controller=null;
-document.getElementById("stopBtn").classList.add("hidden");
-};
-
-document.getElementById("userInput").addEventListener("input",autoResize);
-document.getElementById("userInput").addEventListener("keydown",e=>{
-if(e.key==="Enter"&&!e.shiftKey){
-e.preventDefault();
-sendMessage();
-}
-});
-
-document.getElementById("newChatBtn").onclick=createChat;
-
-document.getElementById("darkToggle").onclick=()=>{
-state.darkMode=!state.darkMode;
-document.documentElement.classList.toggle("dark");
-saveAll();
-};
-
-document.getElementById("settingsBtn").onclick=()=>{
-document.getElementById("settingsModal").classList.remove("hidden");
-};
-
-document.getElementById("saveSettings").onclick=()=>{
-state.provider=document.getElementById("providerSelect").value;
-state.apiKey=document.getElementById("apiKeyInput").value.trim();
-state.model=document.getElementById("modelInput").value.trim();
-saveAll();
-document.getElementById("settingsModal").classList.add("hidden");
-};
-
-document.getElementById("openSidebar").onclick=()=>{
-document.getElementById("sidebar").classList.remove("-translate-x-full");
-};
-document.getElementById("closeSidebar").onclick=()=>{
-document.getElementById("sidebar").classList.add("-translate-x-full");
-};
-
-if(state.chats.length===0)createChat();
-else{
-state.currentChatId=state.chats[0].id;
-renderChats();
-renderMessages();
-}
-
-document.getElementById("providerSelect").value=state.provider;
-document.getElementById("apiKeyInput").value=state.apiKey;
-document.getElementById("modelInput").value=state.model;
-
-document.getElementById("loading").style.display="none";
-document.getElementById("app").classList.remove("hidden");
-
-})();
-</script>
-
+            setTimeout(() => {
+                alert("Minecraft is now starting! Enjoy your game.");
+                btn.innerHTML = "PLAY";
+                btn.style.opacity = "1";
+                btn.disabled = false;
+            }, 2500);
+        }
+    </script>
 </body>
 </html>
